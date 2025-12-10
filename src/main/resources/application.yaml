@@ -1,3 +1,9 @@
 spring:
   application:
     name: spring-reactor
+
+  mongodb:
+    uri: mongodb+srv://root:ww12Fijo@cluster0.tla3seo.mongodb.net/yape_notifier?retryWrites=true&w=majority&appName=Cluster0
+
+server:
+  port: 8081
