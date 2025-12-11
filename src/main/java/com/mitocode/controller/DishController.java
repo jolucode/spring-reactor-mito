@@ -1,5 +1,7 @@
 package com.mitocode.controller;
 
+import com.mitocode.dto.DishRecord;
+import com.mitocode.mapper.DishMapper;
 import com.mitocode.model.Dish;
 import com.mitocode.service.IDishService;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +21,16 @@ import java.net.URI;
 public class DishController {
 
     private final IDishService service;
+    private final DishMapper mapper;
 
     @GetMapping
-    public Mono<ResponseEntity<Flux<Dish>>> listar() {
-        return service.findAll()
-                .collectList()
-                .map(list -> ResponseEntity.ok()
+    public Mono<ResponseEntity<Flux<DishRecord>>> findAll() {
+
+        Flux<DishRecord> fx = service.findAll().map(mapper::toRecord);
+
+        return  Mono.just(ResponseEntity.ok()
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(Flux.fromIterable(list))
+                        .body(fx)
                 ).defaultIfEmpty(ResponseEntity.notFound().build());
 
         /*Mono.just(ResponseEntity.ok()
@@ -35,8 +39,9 @@ public class DishController {
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<Mono<Dish>>> findById(@PathVariable("id") String id) {
+    public Mono<ResponseEntity<Mono<DishRecord>>> findById(@PathVariable("id") String id) {
         return service.findById(id)
+                .map(mapper::toRecord)
                 .map(dish -> ResponseEntity.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Mono.just(dish))
@@ -47,22 +52,23 @@ public class DishController {
     }
 
     @PostMapping
-    public Mono<ResponseEntity<Dish>> save(@RequestBody Dish dish, final ServerHttpRequest req) {
-        return service.save(dish)
+    public Mono<ResponseEntity<DishRecord>> save(@RequestBody DishRecord record, final ServerHttpRequest req) {
+        return service.save(mapper.toEntity(record))
                 .map(saveDish -> ResponseEntity.created(URI.create(req.getURI().toString().concat("/").concat(saveDish.getId())))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(saveDish));
+                        .body(mapper.toRecord(saveDish)));
     }
 
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<Dish>> update(@PathVariable("id") String id, @RequestBody Dish dish) {
+    public Mono<ResponseEntity<DishRecord>> update(@PathVariable("id") String id, @RequestBody DishRecord record) {
         return service.findById(id)
                 .flatMap(existingDish -> {
-                    existingDish.setName(dish.getName());
-                    existingDish.setStatus(dish.getStatus());
-                    existingDish.setPrice(dish.getPrice());
+                    existingDish.setName(record.nameDish());
+                    existingDish.setStatus(record.statusDish());
+                    existingDish.setPrice(record.priceDish());
                     return service.update(existingDish, id);
                 })
+                .map(mapper::toRecord)
                 .map(updatedDish -> ResponseEntity.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(updatedDish))
