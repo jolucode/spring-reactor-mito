@@ -4,6 +4,7 @@ import com.mitocode.dto.DishRecord;
 import com.mitocode.mapper.DishMapper;
 import com.mitocode.model.Dish;
 import com.mitocode.service.IDishService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -52,7 +53,7 @@ public class DishController {
     }
 
     @PostMapping
-    public Mono<ResponseEntity<DishRecord>> save(@RequestBody DishRecord record, final ServerHttpRequest req) {
+    public Mono<ResponseEntity<DishRecord>> save(@Valid @RequestBody DishRecord record, final ServerHttpRequest req) {
         return service.save(mapper.toEntity(record))
                 .map(saveDish -> ResponseEntity.created(URI.create(req.getURI().toString().concat("/").concat(saveDish.getId())))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -60,7 +61,7 @@ public class DishController {
     }
 
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<DishRecord>> update(@PathVariable("id") String id, @RequestBody DishRecord record) {
+    public Mono<ResponseEntity<DishRecord>> update(@Valid @PathVariable("id") String id, @RequestBody DishRecord record) {
         return service.findById(id)
                 .flatMap(existingDish -> {
                     existingDish.setName(record.nameDish());
