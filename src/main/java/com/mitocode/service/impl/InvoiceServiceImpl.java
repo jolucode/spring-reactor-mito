@@ -25,6 +25,7 @@ public class InvoiceServiceImpl extends CRUDImpl<Invoice, String> implements IIn
     private final IInvoiceRepo repo;
     private final IDishRepo dishRepo;
     private final IClientRepo clientRepo;
+
     @Override
     protected IGenericRepo<Invoice, String> getRepo() {
         return repo;
@@ -33,67 +34,50 @@ public class InvoiceServiceImpl extends CRUDImpl<Invoice, String> implements IIn
 
     @Override
     public Mono<byte[]> generarReport(String idInvoice) {
-
         return repo.findById(idInvoice)
+                .flatMap(this::populateClient)
+                .flatMap(this::populateDishes)
+                .map(this::generatePdfReport);
+    }
 
-                // ============================
-                // 1. Cargar CLIENT completo
-                // ============================
-                .flatMap(inv ->
-                        clientRepo.findById(inv.getClient().getId())
-                                .map(client -> {
-                                    inv.setClient(client);
-                                    return inv;
-                                })
-                )
-
-                // ============================
-                // 2. Cargar cada DISH completo
-                // ============================
-                .flatMap(inv ->
-                        Flux.fromIterable(inv.getItems())
-                                .flatMap(item ->
-                                        dishRepo.findById(item.getDish().getId())
-                                                .map(fullDish -> {
-                                                    item.setDish(fullDish);  // Dish lleno
-                                                    return item;
-                                                })
-                                )
-                                .collectList()
-                                .map(itemsList -> {
-                                    inv.setItems(itemsList);
-                                    return inv;
-                                })
-                )
-
-                // ============================
-                // 3. GENERAR PDF CON JASPER
-                // ============================
-                .map(inv -> {
-
-                    try {
-                        Map<String, Object> parameters = new HashMap<>();
-                        parameters.put("txt_client", inv.getClient().getFirstName());
-
-                        InputStream stream = getClass()
-                                .getResourceAsStream("/facturas.jrxml");
-
-                        JasperReport report = JasperCompileManager.compileReport(stream);
-
-                        JRBeanArrayDataSource dataSource =
-                                new JRBeanArrayDataSource(inv.getItems().toArray());
-
-                        JasperPrint print =
-                                JasperFillManager.fillReport(report, parameters, dataSource);
-
-                        return JasperExportManager.exportReportToPdf(print);
-
-                    } catch (JRException e) {
-                        e.printStackTrace();
-                        return new byte[0];
-                    }
-
+    private Mono<Invoice> populateClient(Invoice invoice) {
+        return clientRepo.findById(invoice.getClient().getId())
+                .map(client -> {
+                    invoice.setClient(client);
+                    return invoice;
                 });
+    }
+
+    private Mono<Invoice> populateDishes(Invoice invoice) {
+        return Flux.fromIterable(invoice.getItems())
+                .flatMap(item ->
+                        dishRepo.findById(item.getDish().getId())
+                                .map(fullDish -> {
+                                    item.setDish(fullDish);  // Dish lleno
+                                    return item;
+                                })
+                )
+                .collectList()
+                .map(itemsList -> {
+                    invoice.setItems(itemsList);
+                    return invoice;
+                });
+    }
+
+    private byte[] generatePdfReport(Invoice invoice) {
+        try {
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("txt_client", invoice.getClient().getFirstName());
+            InputStream stream = getClass().getResourceAsStream("/facturas.jrxml");
+            JasperReport report = JasperCompileManager.compileReport(stream);
+            JRBeanArrayDataSource dataSource = new JRBeanArrayDataSource(invoice.getItems().toArray());
+            JasperPrint print = JasperFillManager.fillReport(report, parameters, dataSource);
+            return JasperExportManager.exportReportToPdf(print);
+
+        } catch (JRException e) {
+            e.printStackTrace();
+            return new byte[0];
+        }
     }
 
 
