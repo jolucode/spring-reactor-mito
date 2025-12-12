@@ -2,7 +2,7 @@ spring:
   application:
     name: spring-reactor
   jackson:
-    default-property-inclusion: non_null
+    default-property-inclusion: non_null`
 
   mongodb:
     uri: mongodb+srv://root:ww12Fijo@cluster0.tla3seo.mongodb.net/mesero2023v?retryWrites=true&w=majority&appName=Cluster0

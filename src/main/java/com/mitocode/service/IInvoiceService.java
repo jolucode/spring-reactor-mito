@@ -2,6 +2,7 @@ package com.mitocode.service;
 
 import com.mitocode.model.Dish;
 import com.mitocode.model.Invoice;
+import reactor.core.publisher.Mono;
 
 public interface IInvoiceService extends IGenericService<Invoice, String>{
     
@@ -10,5 +11,7 @@ public interface IInvoiceService extends IGenericService<Invoice, String>{
     Flux<Dish> findAll();
     Mono<Dish> findById(String id);
     Mono<Boolean> delete(String id);*/
+
+    Mono<byte[]> generarReport(String idInvoice);
 
 }

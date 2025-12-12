@@ -64,17 +64,17 @@ public class InvoiceController {
         return service.findById(id)
                 .flatMap(existingInvoice -> {
 
-                    // 1️⃣ Actualizar descripción
+                    //  Actualizar descripción
                     existingInvoice.setDescription(record.description());
 
-                    // 2️⃣ Actualizar cliente (usando mapper)
+                    // Actualizar cliente (usando mapper)
                     Client updatedClient = clientMapper.toEntity(record.client());
                     existingInvoice.setClient(updatedClient);
 
-                    // 3️⃣ Actualizar items
+                    //  Actualizar items
                     existingInvoice.setItems(record.items());
 
-                    // 4️⃣ Guardar
+                    // Guardar
                     return service.update(existingInvoice, id);
                 })
                 .map(invoiceMapper::toRecord) // Convertimos a record
@@ -91,6 +91,16 @@ public class InvoiceController {
                 .map(deleted ->
                         deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build()
                 );
+    }
+
+
+    @GetMapping("/generateReport/{id}")
+    public Mono<ResponseEntity<byte[]>> generarReporte(@PathVariable("id") String id) {
+        return service.generarReport(id)
+                .map(reportBytes -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .body(reportBytes))
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
 
